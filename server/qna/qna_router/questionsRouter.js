@@ -1,22 +1,22 @@
 const router = require('express').Router();
-const { questions } = require('./qna_controller');
+const { getQuestions, getAnswers, postQuestion, postAnswer, addQuestionHelpful, reportQuestion } = require('./qna_controller').questions;
 
 // List Questions
-router.get('', questions.getQuestions)
+router.get('', getQuestions)
 
 // Answers List
-router.get('/:question_id/answers', answers.getAnswers)
+router.get('/:question_id/answers', getAnswers)
 
 // Add a Question
-router.post('', questions.postQuestion);
+router.post('', postQuestion);
 
 // Add an Answer
-router.post('/:question_id/answers', answers.postAnswer);
+router.post('/:question_id/answers', postAnswer);
 
 //Mark Question as Helpful
-router.put('/:question_id/helpful', questions.addQuestionHelpful);
+router.put('/:question_id/helpful', addQuestionHelpful);
 
 // Report Question
-router.put('/:question_id/report', questions.reportQuestion);
+router.put('/:question_id/report', reportQuestion);
 
 module.exports = router;
