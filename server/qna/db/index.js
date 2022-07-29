@@ -1,2 +1,7 @@
-const pgp = require('pg-promise')();
-module.exports = db = pgp('postgress://localhost:3000/qna');
+const pgp = require('pg-promise')({});
+
+const connectString = 'postgresql://@localhost:5432/qna'
+
+const db = pgp(connectString);
+
+module.exports = db;

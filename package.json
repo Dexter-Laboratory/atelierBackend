@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "products-sever": "nodemon --watch server/products/index.js",
-    "reviews-sever": "nodemon --watch server/reviews/index.js",
-    "qna-sever": "nodemon --watch server/qna/index.js"
+    "products-server": "nodemon --watch server/products/index.js",
+    "reviews-server": "nodemon --watch server/reviews/index.js",
+    "qna-server": "nodemon --watch /server/qna/index.js"
   },
   "repository": {
     "type": "git",
@@ -22,7 +22,6 @@
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
     "nodemon": "^2.0.19",
-    "pg": "^8.7.3",
     "pg-promise": "^10.11.1",
     "postgres": "^3.2.4"
   },
