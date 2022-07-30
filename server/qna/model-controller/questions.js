@@ -27,6 +27,8 @@ module.exports = {
         SELECT * FROM questions
         WHERE product_id=${product_id}
         AND reported = false
+        offset ${(page - 1) * count}
+        limit ${count}
       `;
 
       const getAnswersQuery = (product_id) => `
@@ -102,7 +104,6 @@ module.exports = {
       const data = { product_id, results: questions };
       res.status(200).json(data);
     } catch (err) {
-      console.log(err);
       res.sendStatus(404);
     }
   },
@@ -116,9 +117,11 @@ module.exports = {
         SELECT id, question_id, answer_body, answer_date, answerer_name, answerer_email
         FROM answers
         WHERE question_id = ${question_id} AND reported = false
+        offset ${(page - 1) * count}
+        limit ${count}
       `;
 
-      const answersPhotosQuery = (question_id) = `
+      const answersPhotosQuery = (question_id) => `
         SELECT *
         FROM answers_photos
         WHERE answer_id IN
@@ -127,16 +130,16 @@ module.exports = {
 
       const answersQueries = [answersQuery, answersPhotosQuery];
 
-      const [aData, apData] = Promise.all(answersQueries.map(query =>  db.query(query(question_id))));
+      const [aData, apData] = await Promise.all(answersQueries.map(query =>  db.query(query(question_id))));
 
-      const answersPhoto = aData.reduce((imgObj, img) => {
+      const answersPhoto = apData.reduce((imgObj, img) => {
         imgObj[img.answer_id] = imgObj[img.answer_id] || [];
         return {
           ...imgObj,
           [img.answer_id] : [...imgObj[img.answer_id], img.url]
         }
       }, {});
-      const answers = apData.map(data => {
+      const answers = aData.map(data => {
         return {
           answer_id: data.id,
           body: data.answer_body,
@@ -155,7 +158,6 @@ module.exports = {
       }
       res.status(200).json(data);
     } catch (err) {
-      console.log(err);
       res.sendStatus(404);
     }
   },
@@ -171,7 +173,6 @@ module.exports = {
       await db.query(postQuestionQueryStr);
       res.sendStatus(201);
     } catch (err) {
-      console.error(err);
       res.sendStatus(404);
     }
   },
@@ -192,11 +193,9 @@ module.exports = {
       `;
       const print2 = await db.query(postAnswerQuery);
       const print1 = await Promise.all(photos.map(photo => postAnswersPhotosQuery(photo)))
-      console.log(print1, print2)
       nextAnswerId++;
       res.sendStatus(201);
     } catch (err) {
-      console.log(err);
       res.sendStatus(404);
     }
   },

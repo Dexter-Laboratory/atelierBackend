@@ -74,3 +74,9 @@ CREATE INDEX questions_product ON questions(product_id) WHERE reported = false;
 INSERT INTO questions(id, product_id, question_body, question_date, asker_name, asker_email)
   VALUES (3518963 + 1, 40351, 'hello my name is test', 1659211980105,  'test',  'test@test.com')
     RETURNING *;
+
+SELECT * FROM questions
+WHERE product_id=40344
+AND reported = false
+offset 0
+limit 5;
