@@ -69,3 +69,8 @@ ALTER TABLE answers RENAME COLUMN helpful TO answers_helpfulness;
 CREATE INDEX answers_questions ON answers(question_id) WHERE reported = false;
 CREATE INDEX photos_answers ON answers_photos(answer_id);
 CREATE INDEX questions_product ON questions(product_id) WHERE reported = false;
+
+
+INSERT INTO questions(id, product_id, question_body, question_date, asker_name, asker_email)
+  VALUES (3518963 + 1, 40351, 'hello my name is test', 1659211980105,  'test',  'test@test.com')
+    RETURNING *;
