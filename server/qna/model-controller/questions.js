@@ -1,56 +1,85 @@
-// const {
-//   getQuestionsQuery,
-//   postQuestionQuery,
-//   getAnswersQuery,
-//   postAnswerQuery,
-//   addQuestionHelpfulQuery,
-//   reportQuestionQuery,
-// } = require("../qna_model").questions;
+const db = require("../db");
 
-const db = require('../db');
+const qetQuestionsQuery = (product_id) => `
+  SELECT * FROM questions
+  WHERE product_id=${product_id}
+  AND reported = false
+`;
 
-// Retrieves a list of questions for a particular product. This list does not include any reported questions.
+const getAnswersQuery = (product_id) => `
+  SELECT * FROM answers
+  WHERE reported=false AND question_id
+    IN (SELECT id FROM questions
+      WHERE product_id =${product_id}
+      AND reported = false)`;
+
+const getAnswersPhotosQuery = (product_id) => `
+  SELECT * FROM answers_photos WHERE answer_id IN
+    (SELECT id FROM answers WHERE reported=false AND question_id IN
+      (SELECT id FROM questions WHERE product_id =${product_id} AND reported = false))
+`;
 
 module.exports = {
   getQuestions: async (req, res) => {
-    console.log('hello')
     try {
-      const { product_id, page = '1', count = '5' } = req.query;
+      const { product_id, page = 1, count = 5 } = req.query;
+      const questionQueries = [qetQuestionsQuery, getAnswersQuery, getAnswersPhotosQuery];
+      const qnaData = await Promise.all(
+        questionQueries.map(
+          (query) => db.any(query(product_id))
+        )
+      );
+      const [qData, aData, apData] = qnaData;
 
-      const questionData = await db.any(`SELECT * FROM questions WHERE product_id=${product_id} AND reported = false`);
-      // TODO: Need to fetch all the answers related to each questions here
-
-      const results = await Promise.all(questionData.map(async (question) => {
-        const answerData = await db.any(`SELECT * FROM answers WHERE question_id=${question.id} AND reported = false`);
-        //TODO: answer needs to be reduced to an object with id as key and data as its value
-        const answers = answerData.reduce((allAnswers,answer) => {
-          return {...allAnswers, [answer.id]: {
-            id: answer.id,
-            body: answer.body,
-            date: new Date(answer.date_written * 1000).toISOString().slice(1),
-            answerer_name: answer.answerer_name,
-            helpfulness: answer.helpful,
-            photos: [],
-          }};
-        }, {})
-        console.log(answers);
-        const {id: question_id, body: question_body, date_written: question_date, asker_name, helpful: question_helpfulness, reported} = question;
+      const photos = apData.reduce((allPics, photo) => {
+        console.log(photo);
+        allPics[photo.answer_id] = allPics[photo.answer_id] || [];
         return {
-          question_id,
+          ...allPics,
+          [photo.answer_id]: [...allPics[photo.answer_id], photo.url]
+        };
+      }, {});
+
+      const answers = aData.reduce((allAnswers, answer) => {
+        allAnswers[answer.question_id] = allAnswers[answer.question_id] || {};
+        return {
+          ...allAnswers,
+          [answer.question_id]: {
+            ...allAnswers[answer.question_id],
+            [answer.id]: {
+              id: answer.id,
+              body: answer.answer_body,
+              date: new Date(answer.answer_date * 1000).toISOString().slice(1),
+              answerer_name: answer.answerer_name.replaceAll(/[^a-zA-Z]+/g, ' ').trim(),
+              helpfulness: answer.answers_helpfulness,
+              photos: photos[answer.id] || [],
+            },
+          },
+        };
+      }, {});
+
+      const questions = qData.map((question) => {
+        const {
+          id,
           question_body,
-          question_date:  new Date(question_date * 1000).toISOString().slice(1),
+          question_date,
           asker_name,
           question_helpfulness,
           reported,
-          answers
+        } = question;
+
+        return {
+          question_id: id,
+          question_body,
+          question_date: new Date(question_date * 1000).toISOString().slice(1),
+          asker_name: asker_name.replaceAll(/[^a-zA-Z]+/g, ' ').trim(),
+          question_helpfulness,
+          reported,
+          answers: answers[id],
         };
-        // TODO: Build logic to structure and create usable data
-      }));
+      });
 
-      const data = { product_id, results }
-
-
-
+      const data = { product_id, results: questions };
       res.status(200).json(data);
     } catch (err) {
       console.log(err);
@@ -61,22 +90,62 @@ module.exports = {
   getAnswers: async (req, res) => {
     try {
       const { question_id } = req.params;
-      const { page, count } = req.query;
-      const result = await getAnswersQuery(question_id, page, count);
-      console.log(data);
-      // TODO: Build logic to structure and create usable data
+      const { page = 1, count = 5 } = req.query;
+
+      const answers = await db.query(`
+        SELECT id, question_id, answer_body, answer_date, answerer_name, answerer_email
+        FROM answers
+        WHERE question_id = ${question_id} AND reported = false
+      `);
+      // SELECT * FROM answers_photos WHERE answer_id IN
+      // (SELECT id FROM answers WHERE reported=false AND question_id IN
+      const answersPhotos = await db.query(`
+        SELECT *
+        FROM answers_photos
+        WHERE answer_id IN
+        (SELECT id FROM answers WHERE reported=false AND question_id = ${question_id})
+      `)
+
+      console.log(answers);
+      const ap = answersPhotos.reduce((imgObj, img) => {
+        imgObj[img.answer_id] = imgObj[img.answer_id] || [];
+        return {
+          ...imgObj,
+          [img.answer_id] : [...imgObj[img.answer_id], img.url]
+        }
+      }, {});
+      const a = answers.map(data => {
+        return {
+          answer_id: data.id,
+          body: data.answer_body,
+          date: new Date(data.answer_date * 1000).toISOString().slice(1),
+          answerer_name: data.answerer_name.replaceAll(/[^a-zA-Z]+/g, ' ').trim(),
+          helpfulness: data.answerer_helpfulness,
+          photos: ap[data.id]
+        }
+      });
+
+      const data = {
+        question: question_id,
+        page,
+        count,
+        results: a
+      }
       res.status(200).json(data);
     } catch (err) {
       console.log(err);
+      res.sendStatus(404);
     }
   },
 
   postQuestion: async (req, res) => {
     try {
       const { body, name, email, product_id } = req.body;
-      // TODO: Build logic to verify correct data from client
-      const result = await postQuestionQuery(body, name, email, product_id);
-      res.sendStatus(201);
+      const postQuestionQueryStr = `
+        INSERT INTO questions product_id, question_body, question_date, asker_name, asker_email
+        VALUES (${product_id}, ${body}, ${+new Date()}, ${name}, ${email})
+      `;
+      const result = await db.query(postQuestionQueryStr);
     } catch (err) {
       res.sendStatus(404);
     }
@@ -84,10 +153,14 @@ module.exports = {
 
   postAnswer: async (req, res) => {
     try {
+
       const { question_id } = req.params;
       const { body, name, email, photos } = req.body;
-      // TODO: Build logic to verify correct data from client
-      const result = await postAnswerQuery(body, name, email, photos);
+      const postAnswerQueryStr = `
+        INSERT INTO question_id, question_body, answer_, asker_name, asker_email
+        VALUES(${question_id}, ${body}, ${+new Date()}, ${name}, ${email})
+      `;
+      const result = await db.query(postAnswerQueryStr);
       res.sendStatus(201);
     } catch (err) {
       console.log(err);
@@ -97,10 +170,15 @@ module.exports = {
   addQuestionHelpful: async (req, res) => {
     try {
       const { question_id } = req.params;
-      // TODO: Possibly build a logic to only allow one helpfulness count up per user
-      const result = await addQuestionHelpfulQuery(question_id);
+      const addHelpfulMutationStr = `
+        UPDATE questions
+        SET question_helpfulness = question_helpfulness + 1
+        WHERE id=${question_id}
+      `;
+      const data = await db.query(addHelpfulMutationStr);
       res.sendStatus(204);
     } catch (err) {
+      console.log(err);
       res.sendStatus(404);
     }
   },
@@ -108,8 +186,12 @@ module.exports = {
   reportQuestion: async (req, res) => {
     try {
       const { question_id } = req.params;
-      // TODO: Possibly build a logic to only allow one report per question. Maybe just remember the reported questions in memory
-      const result = await reportQuestionQuery(question_id);
+      const reportedQuestionMutationStr = `
+        UPDATE questions
+        SET reported = true
+        WHERE id=${question_id}
+      `;
+      await db.query(reportedQuestionMutationStr);
       res.sendStatus(204);
     } catch (err) {
       res.sendStatus(404);

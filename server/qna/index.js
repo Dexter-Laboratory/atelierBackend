@@ -4,6 +4,7 @@ const { questions, answers } = require('./qna_router')
 
 app.use(express.json());
 
+
 app.use('/qa/questions' , questions);
 
 app.use('/qa/answers' , answers);
