@@ -1,1 +1,0 @@
-SELECT setval('answers_photos_id_seq', (SELECT MAX(id) FROM answers_photos)+1);

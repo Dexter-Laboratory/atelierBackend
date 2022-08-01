@@ -101,25 +101,26 @@ module.exports = {
     try {
       const { question_id } = req.params;
       const { body, name, email, photos } = req.body;
-      console.log(req.body);
+      console.log(body, name, email, photos);
       const postAnswerQuery = () => `
+        START TRANSACTION;
         INSERT INTO answers(question_id, body, answer_date, answerer_name, answerer_email)
         VALUES(${question_id}, '${body}', ${+new Date()}, '${name}', '${email}')
-        RETURNING *
+        RETURNING *;
       `;
-      const postAnswersPhotosQuery = (photo) => `
+
+      const postPhotoQuery = (answer_id) => `
         INSERT INTO answers_photos(answer_id, url)
-        VALUES(${nextAnswerId}, '${photo}')
-        RETURNING *
+        VALUES(${answer_id}, '${photos}')
+        RETURNING *;
+        COMMIT;
       `;
-      const print2 = await db.query(postAnswerQuery);
-      const print1 = await Promise.all(
-        photos.map((photo) => postAnswersPhotosQuery(photo))
-      );
-      console.log(print1, print2);
+      const [answer] = await db.query(postAnswerQuery());
+      await db.query(postPhotoQuery(answer.id));
+
       res.sendStatus(201);
     } catch (err) {
-      console.log(err);
+      await db.query("ROLLBACK;");
       res.sendStatus(404);
     }
   },
