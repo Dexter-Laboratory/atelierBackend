@@ -41,7 +41,6 @@ module.exports = {
       const [data] = await db.query(qnaQuery);
       res.status(200).json(data);
     } catch (err) {
-      console.log(err);
       res.sendStatus(404);
     }
   },
@@ -101,7 +100,7 @@ module.exports = {
     try {
       const { question_id } = req.params;
       const { body, name, email, photos } = req.body;
-      console.log(body, name, email, photos);
+
       const postAnswerQuery = () => `
         START TRANSACTION;
         INSERT INTO answers(question_id, body, answer_date, answerer_name, answerer_email)
