@@ -1,109 +1,48 @@
 const db = require("../db");
 
-let nextQuestionId;
-let nextAnswerId;
-let nextAnswerPhotoId;
-
-(() => db.query(`Select id from questions order by id desc limit 1`))().then(question => {
-  nextQuestionId = question[0].id + 1;
-  console.log(nextQuestionId);
-});
-
-(() => db.query(`Select id from answers order by id desc limit 1`))().then(answer => {
-  nextAnswerId = answer[0].id + 1;
-  console.log(nextAnswerId);
-});
-(() => db.query(`Select id from answers_photos order by id desc limit 1`))().then(answerPhoto => {
-  nextAnswerPhotoId = answerPhoto[0].id + 1;
-  console.log(nextAnswerPhotoId);
-});
-
 module.exports = {
   getQuestions: async (req, res) => {
     try {
       const { product_id, page = 1, count = 5 } = req.query;
-
-      const qetQuestionsQuery = (product_id) => `
-        SELECT * FROM questions
-        WHERE product_id=${product_id}
-        AND reported = false
-        offset ${(page - 1) * count}
-        limit ${count}
+      const qnaQuery = `
+        SELECT 40330 AS product_id,
+          json_agg(
+            json_build_object(
+              'question_id', questions.question_id,
+              'question_body', questions.question_body,
+              'question_date', questions.question_date,
+              'asker_name', questions.asker_name,
+              'question_helpfulness', questions.question_helpfulness,
+              'reported', questions.reported,
+              'answers', (SELECT coalesce((
+                json_object_agg(
+                  answers.id, json_build_object(
+                    'id', answers.id,
+                    'body', answers.body,
+                    'date', answers.answer_date,
+                    'answerer_name', answers.answerer_name,
+                    'helpfulness', answers.helpfulness,
+                    'photos', (SELECT coalesce(json_agg(answers_photos.url), '[]')
+                    FROM answers_photos WHERE answers_photos.answer_id = answers.id
+                    )
+                  )
+                )
+              ), '{}')
+              FROM answers WHERE answers.question_id = questions.question_id
+              )
+            )
+          ) AS results
+        FROM questions
+        WHERE questions.product_id = 40350 AND questions.reported = false
+        OFFSET ${(page - 1) * count}
+        LIMIT ${count}
+        GROUP BY 1
+      ;
       `;
-
-      const getAnswersQuery = (product_id) => `
-        SELECT * FROM answers
-        WHERE reported=false AND question_id
-        IN (SELECT id FROM questions
-        WHERE product_id =${product_id}
-        AND reported = false)
-      `;
-
-      const getAnswersPhotosQuery = (product_id) => `
-        SELECT * FROM answers_photos WHERE answer_id IN
-        (SELECT id FROM answers WHERE reported=false AND question_id IN
-        (SELECT id FROM questions WHERE product_id =${product_id} AND reported = false))
-      `;
-
-      const questionQueries = [qetQuestionsQuery, getAnswersQuery, getAnswersPhotosQuery];
-      const qnaData = await Promise.all(
-        questionQueries.map(
-          (query) => db.any(query(product_id))
-        )
-      );
-      const [qData, aData, apData] = qnaData;
-
-      const photos = apData.reduce((allPics, photo) => {
-        console.log(photo);
-        allPics[photo.answer_id] = allPics[photo.answer_id] || [];
-        return {
-          ...allPics,
-          [photo.answer_id]: [...allPics[photo.answer_id], photo.url]
-        };
-      }, {});
-
-      const answers = aData.reduce((allAnswers, answer) => {
-        allAnswers[answer.question_id] = allAnswers[answer.question_id] || {};
-        return {
-          ...allAnswers,
-          [answer.question_id]: {
-            ...allAnswers[answer.question_id],
-            [answer.id]: {
-              id: answer.id,
-              body: answer.answer_body,
-              date: new Date(answer.answer_date * 1000).toISOString().slice(1),
-              answerer_name: answer.answerer_name.replaceAll(/[^a-zA-Z]+/g, ' ').trim(),
-              helpfulness: answer.answers_helpfulness,
-              photos: photos[answer.id] || [],
-            },
-          },
-        };
-      }, {});
-
-      const questions = qData.map((question) => {
-        const {
-          id,
-          question_body,
-          question_date,
-          asker_name,
-          question_helpfulness,
-          reported,
-        } = question;
-
-        return {
-          question_id: id,
-          question_body,
-          question_date: new Date(question_date * 1000).toISOString().slice(1),
-          asker_name: asker_name.replaceAll(/[^a-zA-Z]+/g, ' ').trim(),
-          question_helpfulness,
-          reported,
-          answers: answers[id],
-        };
-      });
-
-      const data = { product_id, results: questions };
+      const [data] = await db.query(qnaQuery);
       res.status(200).json(data);
     } catch (err) {
+      console.log(err);
       res.sendStatus(404);
     }
   },
@@ -112,50 +51,33 @@ module.exports = {
     try {
       const { question_id } = req.params;
       const { page = 1, count = 5 } = req.query;
-
-      const answersQuery = (question_id) => `
-        SELECT id, question_id, answer_body, answer_date, answerer_name, answerer_email
+      const aQuery = `
+        SELECT ${question_id} AS question,
+          ${page} AS page,
+          ${count} AS count,
+          coalesce(json_agg(
+            json_build_object(
+              'answer_id', answers.id,
+              'body', answers.body,
+              'date', answers.answer_date,
+              'answerer_name', answers.answerer_name,
+              'helpfulness', answers.helpfulness,
+              'photos', (SELECT coalesce(json_agg(
+                json_build_object(
+                  'id', answers_photos.id,
+                  'url', answers_photos.url
+                )), '[]')
+                FROM answers_photos WHERE answers_photos.answer_id = answers.id
+              )
+            )
+          ), '[]') AS results
         FROM answers
-        WHERE question_id = ${question_id} AND reported = false
-        offset ${(page - 1) * count}
-        limit ${count}
-      `;
-
-      const answersPhotosQuery = (question_id) => `
-        SELECT *
-        FROM answers_photos
-        WHERE answer_id IN
-        (SELECT id FROM answers WHERE reported=false AND question_id = ${question_id})
-      `;
-
-      const answersQueries = [answersQuery, answersPhotosQuery];
-
-      const [aData, apData] = await Promise.all(answersQueries.map(query =>  db.query(query(question_id))));
-
-      const answersPhoto = apData.reduce((imgObj, img) => {
-        imgObj[img.answer_id] = imgObj[img.answer_id] || [];
-        return {
-          ...imgObj,
-          [img.answer_id] : [...imgObj[img.answer_id], img.url]
-        }
-      }, {});
-      const answers = aData.map(data => {
-        return {
-          answer_id: data.id,
-          body: data.answer_body,
-          date: new Date(data.answer_date * 1000).toISOString().slice(1),
-          answerer_name: data.answerer_name.replaceAll(/[^a-zA-Z]+/g, ' ').trim(),
-          helpfulness: data.answerer_helpfulness,
-          photos: answersPhoto[data.id]
-        }
-      });
-
-      const data = {
-        question: question_id,
-        page,
-        count,
-        results: answers
-      }
+        WHERE answers.question_id = ${question_id} and answers.reported = false
+        OFFSET ${(page - 1) * count}
+        LIMIT ${count}
+        ;
+    `;
+      const [data] = await db.query(aQuery);
       res.status(200).json(data);
     } catch (err) {
       res.sendStatus(404);
@@ -166,8 +88,8 @@ module.exports = {
     try {
       const { body, name, email, product_id } = req.body;
       const postQuestionQueryStr = `
-        INSERT INTO questions(id, product_id, question_body, question_date, asker_name, asker_email)
-        VALUES (${nextQuestionId++}, ${product_id}, '${body}', ${+new Date()}, '${name}', '${email}')
+        INSERT INTO questions(product_id, question_body, question_date, asker_name, asker_email)
+        VALUES (${product_id}, '${body}', ${+new Date()}, '${name}', '${email}')
         RETURNING *
       `;
       await db.query(postQuestionQueryStr);
@@ -182,17 +104,19 @@ module.exports = {
       const { question_id } = req.params;
       const { body, name, email, photos } = req.body;
       const postAnswerQuery = () => `
-        INSERT INTO answers(id, question_id, answer_body, answer_date, answerer_name, answerer_email)
-        VALUES(${nextAnswerId}, ${question_id}, '${body}', ${+new Date()}, '${name}', '${email}')
+        INSERT INTO answers(question_id, answer_body, answer_date, answerer_name, answerer_email)
+        VALUES(${question_id}, '${body}', ${+new Date()}, '${name}', '${email}')
         RETURNING *
       `;
       const postAnswersPhotosQuery = (photo) => `
-        INSERT INTO answers_photos(id, answer_id, url)
-        VALUES(${nextAnswerPhotoId++}, ${nextAnswerId}, '${photo}')
+        INSERT INTO answers_photos(answer_id, url)
+        VALUES(${nextAnswerId}, '${photo}')
         RETURNING *
       `;
       const print2 = await db.query(postAnswerQuery);
-      const print1 = await Promise.all(photos.map(photo => postAnswersPhotosQuery(photo)))
+      const print1 = await Promise.all(
+        photos.map((photo) => postAnswersPhotosQuery(photo))
+      );
       nextAnswerId++;
       res.sendStatus(201);
     } catch (err) {

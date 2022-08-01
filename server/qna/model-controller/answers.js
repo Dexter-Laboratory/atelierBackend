@@ -7,7 +7,6 @@ module.exports = {
       await db.query(`UPDATE answers SET answers_helpfulness = answers_helpfulness + 1 WHERE id=${answer_id} RETURNING *`);
       res.sendStatus(204);
     } catch (err) {
-      console.log(err);
       res.sendStatus(404);
     }
   },
