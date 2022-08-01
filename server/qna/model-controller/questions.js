@@ -36,7 +36,7 @@ module.exports = {
         WHERE questions.product_id = ${product_id} AND questions.reported = false
         GROUP BY 1
         OFFSET ${(page - 1) * count}
-        LIMIT ${count}
+        LIMIT ${count};
       `;
       const [data] = await db.query(qnaQuery);
       res.status(200).json(data);
@@ -72,9 +72,8 @@ module.exports = {
         FROM answers
         WHERE answers.question_id = ${question_id} and answers.reported = false
         OFFSET ${(page - 1) * count}
-        LIMIT ${count}
-        ;
-    `;
+        LIMIT ${count};
+      `;
       const [data] = await db.query(aQuery);
       res.status(200).json(data);
     } catch (err) {
