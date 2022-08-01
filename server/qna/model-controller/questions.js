@@ -5,7 +5,7 @@ module.exports = {
     try {
       const { product_id, page = 1, count = 5 } = req.query;
       const qnaQuery = `
-        SELECT 40330 AS product_id,
+        SELECT ${product_id} AS product_id,
           json_agg(
             json_build_object(
               'question_id', questions.question_id,
@@ -28,16 +28,15 @@ module.exports = {
                   )
                 )
               ), '{}')
-              FROM answers WHERE answers.question_id = questions.question_id
+              FROM answers WHERE answers.question_id = questions.question_id AND answers.reported = false
               )
             )
           ) AS results
         FROM questions
-        WHERE questions.product_id = 40350 AND questions.reported = false
+        WHERE questions.product_id = ${product_id} AND questions.reported = false
+        GROUP BY 1
         OFFSET ${(page - 1) * count}
         LIMIT ${count}
-        GROUP BY 1
-      ;
       `;
       const [data] = await db.query(qnaQuery);
       res.status(200).json(data);
@@ -90,7 +89,6 @@ module.exports = {
       const postQuestionQueryStr = `
         INSERT INTO questions(product_id, question_body, question_date, asker_name, asker_email)
         VALUES (${product_id}, '${body}', ${+new Date()}, '${name}', '${email}')
-        RETURNING *
       `;
       await db.query(postQuestionQueryStr);
       res.sendStatus(201);
@@ -103,8 +101,9 @@ module.exports = {
     try {
       const { question_id } = req.params;
       const { body, name, email, photos } = req.body;
+      console.log(req.body);
       const postAnswerQuery = () => `
-        INSERT INTO answers(question_id, answer_body, answer_date, answerer_name, answerer_email)
+        INSERT INTO answers(question_id, body, answer_date, answerer_name, answerer_email)
         VALUES(${question_id}, '${body}', ${+new Date()}, '${name}', '${email}')
         RETURNING *
       `;
@@ -117,9 +116,10 @@ module.exports = {
       const print1 = await Promise.all(
         photos.map((photo) => postAnswersPhotosQuery(photo))
       );
-      nextAnswerId++;
+      console.log(print1, print2);
       res.sendStatus(201);
     } catch (err) {
+      console.log(err);
       res.sendStatus(404);
     }
   },

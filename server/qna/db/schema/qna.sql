@@ -46,8 +46,8 @@ CSV HEADER ;
 -- SELECT MAX(question_id) FROM questions;
 -- SELECT nextval('questions_question_id_seq');
 SELECT setval('questions_question_id_seq', (SELECT MAX(question_id) FROM questions)+1);
-SELECT setval('answers_id_seq', (SELECT MAX(id) FROM answers_photos)+1);
-SELECT setval('answers_photos_id_seq', (SELECT MAX(id) FROM answers)+1);
+SELECT setval('answers_id_seq', (SELECT MAX(id) FROM answers)+1);
+SELECT setval('answers_photos_id_seq', (SELECT MAX(id) FROM answers_photos)+1);
 
 CREATE INDEX questions_product ON questions(product_id) WHERE reported = false;
 CREATE INDEX answers_question ON answers(question_id) WHERE reported = false;
