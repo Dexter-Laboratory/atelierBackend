@@ -5,24 +5,24 @@ module.exports = {
     try {
       const { product_id, page = 1, count = 5 } = req.query;
       const qnaQuery = `
-        SELECT ${product_id} AS product_id,
-          json_agg(
-            json_build_object(
+        SELECT questions.product_id,
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
               'question_id', questions.question_id,
               'question_body', questions.question_body,
-              'question_date', questions.question_date,
+              'question_date', (SELECT TO_CHAR(to_timestamp(questions.question_date / 1000), 'YYYY-MM-DD"T"HH24:MI:SS:000"Z"')),
               'asker_name', questions.asker_name,
               'question_helpfulness', questions.question_helpfulness,
               'reported', questions.reported,
-              'answers', (SELECT coalesce((
-                json_object_agg(
-                  answers.id, json_build_object(
+              'answers', (SELECT COALESCE((
+                JSON_OBJECT_AGG(
+                  answers.id, JSON_BUILD_OBJECT(
                     'id', answers.id,
                     'body', answers.body,
-                    'date', answers.answer_date,
+                    'date', (SELECT TO_CHAR(to_timestamp(answers.answer_date / 1000), 'YYYY-MM-DD"T"HH24:MI:SS:000"Z"')),
                     'answerer_name', answers.answerer_name,
                     'helpfulness', answers.helpfulness,
-                    'photos', (SELECT coalesce(json_agg(answers_photos.url), '[]')
+                    'photos', (SELECT COALESCE(JSON_AGG(answers_photos.url), '[]')
                     FROM answers_photos WHERE answers_photos.answer_id = answers.id
                     )
                   )
@@ -35,12 +35,13 @@ module.exports = {
         FROM questions
         WHERE questions.product_id = ${product_id} AND questions.reported = false
         GROUP BY 1
-        OFFSET ${(page - 1) * count}
-        LIMIT ${count};
+        OFFSET ${(+page - 1) * +count}
+        LIMIT ${+count};
       `;
       const [data] = await db.query(qnaQuery);
       res.status(200).json(data);
     } catch (err) {
+      console.log(err);
       res.sendStatus(404);
     }
   },
@@ -53,15 +54,15 @@ module.exports = {
         SELECT ${question_id} AS question,
           ${page} AS page,
           ${count} AS count,
-          coalesce(json_agg(
-            json_build_object(
+          COALESCE(JSON_AGG(
+            JSON_BUILD_OBJECT(
               'answer_id', answers.id,
               'body', answers.body,
-              'date', answers.answer_date,
+              'date', (SELECT TO_CHAR(to_timestamp(answers.answer_date / 1000), 'YYYY-MM-DD"T"HH24:MI:SS:000"Z"')),
               'answerer_name', answers.answerer_name,
               'helpfulness', answers.helpfulness,
-              'photos', (SELECT coalesce(json_agg(
-                json_build_object(
+              'photos', (SELECT COALESCE(JSON_AGG(
+                JSON_BUILD_OBJECT(
                   'id', answers_photos.id,
                   'url', answers_photos.url
                 )), '[]')
@@ -71,8 +72,8 @@ module.exports = {
           ), '[]') AS results
         FROM answers
         WHERE answers.question_id = ${question_id} and answers.reported = false
-        OFFSET ${(page - 1) * count}
-        LIMIT ${count};
+        OFFSET ${(+page - 1) * +count}
+        LIMIT ${+count};
       `;
       const [data] = await db.query(aQuery);
       res.status(200).json(data);
@@ -100,7 +101,7 @@ module.exports = {
       const { question_id } = req.params;
       const { body, name, email, photos } = req.body;
 
-      const postAnswerQuery = () => `
+      const postAnswerQuery = `
         START TRANSACTION;
         INSERT INTO answers(question_id, body, answer_date, answerer_name, answerer_email)
         VALUES(${question_id}, '${body}', ${+new Date()}, '${name}', '${email}')
@@ -113,7 +114,7 @@ module.exports = {
         RETURNING *;
         COMMIT;
       `;
-      const [answer] = await db.query(postAnswerQuery());
+      const [answer] = await db.query(postAnswerQuery);
       await db.query(postPhotoQuery(answer.id));
 
       res.sendStatus(201);
@@ -129,7 +130,8 @@ module.exports = {
       const addHelpfulMutationStr = `
         UPDATE questions
         SET question_helpfulness = question_helpfulness + 1
-        WHERE id=${question_id}
+        WHERE question_id=${question_id}
+        ;
       `;
       await db.query(addHelpfulMutationStr);
       res.sendStatus(204);
@@ -144,11 +146,13 @@ module.exports = {
       const reportedQuestionMutationStr = `
         UPDATE questions
         SET reported = true
-        WHERE id=${question_id}
+        WHERE question_id=${question_id}
+        ;
       `;
       await db.query(reportedQuestionMutationStr);
       res.sendStatus(204);
     } catch (err) {
+      console.log(err);
       res.sendStatus(404);
     }
   },

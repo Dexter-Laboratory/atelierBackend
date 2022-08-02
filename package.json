@@ -2,11 +2,10 @@
   "name": "atelierbackend",
   "version": "1.0.0",
   "description": "",
-  "main": "server/qna/index.js",
+  "main": "server/index.js",
   "scripts": {
-    "products-server": "nodemon --watch server/products/index.js",
-    "reviews-server": "nodemon --watch server/reviews/index.js",
-    "qna-server": "nodemon --watch server/qna/index.js"
+    "server": "nodemon --watch server/index.js",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
