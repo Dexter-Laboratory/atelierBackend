@@ -10,7 +10,7 @@ module.exports = (duration) => (req, res, next) => {
     res.originalSend = res.send;
     res.send = (body) => {
       res.originalSend(body);
-      cache.set(key, body, duration);
+      cache.set(key, body, duration * 1000);
     };
     next();
   }
