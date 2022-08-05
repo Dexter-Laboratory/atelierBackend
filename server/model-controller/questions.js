@@ -96,7 +96,7 @@ module.exports = {
       const [data] = await db.query(aQuery);
       res.status(200).json(data);
       // const success = cache.set(key, body, 10000);
-      console.log("caching success: " + success);
+      // console.log("caching success: " + success);
     } catch (err) {
       res.sendStatus(404);
     }
