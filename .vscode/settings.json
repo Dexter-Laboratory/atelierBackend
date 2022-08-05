@@ -9,6 +9,16 @@
       "name": "postgres1",
       "database": "questions_answers",
       "username": "codein92"
+    },
+    {
+      "previewLimit": 50,
+      "server": "54.193.95.182",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "ec2",
+      "database": "questions_answers",
+      "username": "codein92",
+      "password": "92946465"
     }
   ]
 }

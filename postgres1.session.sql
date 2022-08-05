@@ -1,0 +1,67 @@
+Select max(question_id)
+from answers
+Limit 1;
+-- EXPLAIN ANALYZE
+-- SELECT questions.product_id,
+--   JSON_AGG(
+--     JSON_BUILD_OBJECT(
+--       'question_id',
+--       questions.question_id,
+--       'question_body',
+--       questions.question_body,
+--       'question_date',
+--       (
+--         SELECT TO_CHAR(
+--             to_timestamp(questions.question_date / 1000),
+--             'YYYY-MM-DD"T"HH24:MI:SS:000"Z"'
+--           )
+--       ),
+--       'asker_name',
+--       questions.asker_name,
+--       'question_helpfulness',
+--       questions.question_helpfulness,
+--       'reported',
+--       questions.reported,
+--       'answers',
+--       (
+--         SELECT COALESCE(
+--             (
+--               JSON_OBJECT_AGG(
+--                 answers.id,
+--                 JSON_BUILD_OBJECT(
+--                   'id',
+--                   answers.id,
+--                   'body',
+--                   answers.body,
+--                   'date',
+--                   (
+--                     SELECT TO_CHAR(
+--                         to_timestamp(answers.answer_date / 1000),
+--                         'YYYY-MM-DD"T"HH24:MI:SS:000"Z"'
+--                       )
+--                   ),
+--                   'answerer_name',
+--                   answers.answerer_name,
+--                   'helpfulness',
+--                   answers.helpfulness,
+--                   'photos',
+--                   (
+--                     SELECT COALESCE(JSON_AGG(answers_photos.url), '[]')
+--                     FROM answers_photos
+--                     WHERE answers_photos.answer_id = answers.id
+--                   )
+--                 )
+--               )
+--             ),
+--             '{}'
+--           )
+--         FROM answers
+--         WHERE answers.question_id = questions.question_id
+--           AND answers.reported = false
+--       )
+--     )
+--   ) AS results
+-- FROM questions
+-- WHERE questions.product_id = 40300
+--   AND questions.reported = false
+-- GROUP BY 1

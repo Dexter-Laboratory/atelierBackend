@@ -1,5 +1,8 @@
+require("dotenv").config();
+
 const express = require("express");
 const app = express();
+
 const { questions, answers } = require("./qna_router");
 
 app.use(express.json());
