@@ -39,7 +39,7 @@ module.exports = {
         LIMIT ${+count};
       `;
       const [data] = await db.query(qnaQuery);
-      res.status(200).json(data);
+      res.send(data);
       // const success = cache.set(key, body, 10000);
       // console.log("caching success: " + success);
     } catch (err) {
@@ -85,7 +85,7 @@ module.exports = {
         LIMIT ${+count};
       `;
       const [data] = await db.query(aQuery);
-      res.status(200).json(data);
+      res.send(data);
       // const success = cache.set(key, body, 10000);
       // console.log("caching success: " + success);
     } catch (err) {
