@@ -4,9 +4,9 @@ import { check, sleep, group } from "k6";
 
 export const options = {
   stages: [
-    { duration: "15s", target: 100 },
-    { duration: "15s", target: 2000 },
-    { duration: "15s", target: 3000 },
+    { duration: "15s", target: 5000 },
+    { duration: "15s", target: 10000 },
+    { duration: "15s", target: 15000 },
     { duration: "15s", target: 0 },
   ],
 };
@@ -22,7 +22,7 @@ export default function () {
 
   group("GET answers", () => {
     const res = http.get(
-      "http://localhost:3000/qa/questions/3073936/answers?page=1&count=10"
+      "http://localhost:3000/qa/questions/3518960/answers?page=1&count=10"
     );
     check(res, { "is status 200": (r) => r.status == 200 });
     sleep(1);
