@@ -1,5 +1,5 @@
 const NodeCache = require("node-cache");
-const myCache = new NodeCache();
+const cache = new NodeCache();
 
 
 module.exports = duration => (req, res, next) => {
