@@ -9,12 +9,9 @@ app.use(express.json());
 
 console.log("Request received!!!");
 
-app.get("/loaderio-072dcb9324d8a7b71a419894a382eb21/", (req, res) => {
+app.get("/loaderio-74bf8daed0a5e478d355c284c28f9269/", (req, res) => {
   res.sendFile(
-    path.join(
-      __dirname,
-      "/db/loaderio-072dcb9324d8a7b71a419894a382eb21.txt"
-    )
+    path.join(__dirname, "/db/loaderio-74bf8daed0a5e478d355c284c28f9269.txt")
   );
 });
 
