@@ -15,7 +15,10 @@ router.get("", getQuestions);
 
 router.get("/loaderio-072dcb9324d8a7b71a419894a382eb21/", (req, res) => {
   res.sendFile(
-    path.join(__dirname, '/server/db/loaderio-072dcb9324d8a7b71a419894a382eb21.txt');
+    path.join(
+      __dirname,
+      "/server/db/loaderio-072dcb9324d8a7b71a419894a382eb21.txt"
+    )
   );
 });
 
