@@ -50,13 +50,6 @@ module.exports = {
 
   getAnswers: async (req, res) => {
     try {
-      // const key = req.originalUrl;
-      // const cachedResponse = cache.get(key);
-
-      // if (cachedResponse) {
-      //   return res.status(200).json(cachedResponse);
-      // }
-
       const { question_id } = req.params;
       const { page = 1, count = 5 } = req.query;
       const aQuery = `
