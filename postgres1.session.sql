@@ -1,5 +1,5 @@
-Select max(product_id)
-from questions
+Select max(question_id)
+from answers
 Limit 1;
 -- EXPLAIN ANALYZE
 -- SELECT questions.product_id,

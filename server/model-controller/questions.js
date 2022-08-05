@@ -1,17 +1,8 @@
 const db = require("../db");
-// const NodeCache = require("node-cache");
-// const myCache = new NodeCache();
 
 module.exports = {
   getQuestions: async (req, res) => {
     try {
-      // const key = req.originalUrl;
-      // const cachedResponse = cache.get(key);
-
-      // if (cachedResponse) {
-      //   return res.status(200).json(cachedResponse);
-      // }
-      // https://www.youtube.com/watch?v=xZ_Rnh1UHTs
       const { product_id, page = 1, count = 5 } = req.query;
       const qnaQuery = `
         SELECT questions.product_id,
