@@ -1,8 +1,17 @@
 const db = require("../db");
+// const NodeCache = require("node-cache");
+// const myCache = new NodeCache();
 
 module.exports = {
   getQuestions: async (req, res) => {
     try {
+      // const key = req.originalUrl;
+      // const cachedResponse = cache.get(key);
+
+      // if (cachedResponse) {
+      //   return res.status(200).json(cachedResponse);
+      // }
+      // https://www.youtube.com/watch?v=xZ_Rnh1UHTs
       const { product_id, page = 1, count = 5 } = req.query;
       const qnaQuery = `
         SELECT questions.product_id,
@@ -40,6 +49,8 @@ module.exports = {
       `;
       const [data] = await db.query(qnaQuery);
       res.status(200).json(data);
+      // const success = cache.set(key, body, 10000);
+      // console.log("caching success: " + success);
     } catch (err) {
       console.log(err);
       res.sendStatus(404);
@@ -48,6 +59,13 @@ module.exports = {
 
   getAnswers: async (req, res) => {
     try {
+      // const key = req.originalUrl;
+      // const cachedResponse = cache.get(key);
+
+      // if (cachedResponse) {
+      //   return res.status(200).json(cachedResponse);
+      // }
+
       const { question_id } = req.params;
       const { page = 1, count = 5 } = req.query;
       const aQuery = `
@@ -77,6 +95,8 @@ module.exports = {
       `;
       const [data] = await db.query(aQuery);
       res.status(200).json(data);
+      // const success = cache.set(key, body, 10000);
+      console.log("caching success: " + success);
     } catch (err) {
       res.sendStatus(404);
     }
