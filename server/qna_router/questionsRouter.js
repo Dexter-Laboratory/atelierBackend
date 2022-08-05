@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const path = require("path");
+
 const {
   getQuestions,
   getAnswers,
@@ -12,8 +12,6 @@ const {
 
 // List Questions
 router.get("", getQuestions);
-
-
 
 // Answers List
 router.get("/:question_id/answers", getAnswers);
