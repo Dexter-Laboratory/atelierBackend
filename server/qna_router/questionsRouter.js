@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const cache = require("../model-controller/cacheMiddle.js");
+// const cache = require("../model-controller/cacheMiddle.js");
 const {
   getQuestions,
   getAnswers,
@@ -10,12 +10,12 @@ const {
 } = require("../model-controller").questions;
 
 // List Questions
-// router.get("", getQuestions);
-router.get("", cache(300), getQuestions);
+router.get("", getQuestions);
+// router.get("", cache(300), getQuestions);
 
 // Answers List
-// router.get("/:question_id/answers", getAnswers);
-router.get("/:question_id/answers", cache(300), getAnswers);
+router.get("/:question_id/answers", getAnswers);
+// router.get("/:question_id/answers", cache(300), getAnswers);
 
 // Add a Question
 router.post("", postQuestion);
