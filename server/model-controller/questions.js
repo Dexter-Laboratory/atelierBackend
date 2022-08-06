@@ -3,6 +3,7 @@ const db = require("../db");
 module.exports = {
   getQuestions: async (req, res) => {
     try {
+      console.log("getting question");
       const { product_id, page = 1, count = 5 } = req.query;
       const qnaQuery = `
         SELECT questions.product_id,
