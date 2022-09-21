@@ -1,10 +1,6 @@
 # Dexter Laboratory (Questions and Answers)
 A backend application project with production service-oriented architecture by horizontally scaling with NGINX load balancer 
 
-## Table of Contents
-1. [Installation](#installation)
-2. [Tech-Stack](#tech-stack)
-
 ## Installation
   Navigate to the root directory and run the following commands in terminal
   ```npm
